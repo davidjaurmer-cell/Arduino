@@ -5,67 +5,203 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard IoT - Telemetría LoRa</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121824;
-            color: #e2e8f0;
-            margin: 0;
-            padding: 20px;
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 30, 49, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --temp-color: #ff4757;
+            --temp-glow: rgba(255, 71, 87, 0.3);
+            --hum-color: #00d2d3;
+            --hum-glow: rgba(0, 210, 211, 0.3);
+            --accent-neon: #38bdf8;
         }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(255, 71, 87, 0.05) 0px, transparent 50%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
         }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
         h1 {
-            text-align: center;
-            color: #38bdf8;
-            margin-bottom: 30px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            margin: 0 0 10px 0;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
         }
-        .widgets {
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
             display: flex;
-            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .subtitle i {
+            color: var(--accent-neon);
+            animation: pulse 2s infinite;
+        }
+
+        .widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
             margin-bottom: 30px;
         }
+
+        /* Efecto Glassmorphic con bordes brillantes */
         .card {
-            flex: 1;
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border: 1px solid #334155;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 30px 25px;
+            border-radius: 20px;
+            position: relative;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
         }
-        .card h3 { margin: 0; color: #94a3b8; font-size: 14px; text-transform: uppercase; }
-        .card .value { font-size: 48px; font-weight: bold; margin: 10px 0; }
-        .temp .value { color: #f43f5e; }
-        .hum .value { color: #0ea5e9; }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+        }
+
+        .card.temp::before { background: var(--temp-color); box-shadow: 0 2px 12px var(--temp-glow); }
+        .card.hum::before { background: var(--hum-color); box-shadow: 0 2px 12px var(--hum-glow); }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card.temp:hover { box-shadow: 0 12px 30px rgba(255, 71, 87, 0.12); border-color: rgba(255, 71, 87, 0.3); }
+        .card.hum:hover { box-shadow: 0 12px 30px rgba(0, 210, 211, 0.12); border-color: rgba(0, 210, 211, 0.3); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .card-header i {
+            font-size: 1.2rem;
+        }
+        .temp .card-header i { color: var(--temp-color); }
+        .hum .card-header i { color: var(--hum-color); }
+
+        .card .value {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin: 20px 0 0 0;
+            letter-spacing: -0.03em;
+            font-variant-numeric: tabular-nums;
+        }
+        .temp .value { color: var(--text-main); text-shadow: 0 0 20px var(--temp-glow); }
+        .hum .value { color: var(--text-main); text-shadow: 0 0 20px var(--hum-glow); }
+
         .chart-container {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #334155;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
+
         .footer {
             text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #64748b;
+            margin-top: 35px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #2ed573;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #2ed573;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 20px 10px; }
+            .card .value { font-size: 2.8rem; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Dashboard Control - Estación LoRa</h1>
+    <header>
+        <h1>Dashboard Control - Estación LoRa</h1>
+        <div class="subtitle"><i class="fa-solid fa-satellite-dish"></i> Nodo de Monitoreo Remoto en Tiempo Real</div>
+    </header>
 
     <div class="widgets">
         <div class="card temp">
-            <h3>Temperatura</h3>
+            <div class="card-header">
+                <span>Temperatura</span>
+                <i class="fa-solid fa-temperature-half"></i>
+            </div>
             <div class="value" id="curr-temp">--°C</div>
         </div>
         <div class="card hum">
-            <h3>Humedad</h3>
+            <div class="card-header">
+                <span>Humedad</span>
+                <i class="fa-solid fa-droplet"></i>
+            </div>
             <div class="value" id="curr-hum">--%</div>
         </div>
     </div>
@@ -74,12 +210,20 @@
         <canvas id="iotChart"></canvas>
     </div>
 
-    <div class="footer">Actualizándose automáticamente cada 3 segundos</div>
+    <div class="footer">
+        <span class="status-dot"></span>
+        Sincronizado vía API. Actualizando cada 3 segundos
+    </div>
 </div>
 
 <script>
-    // Configuración Inicial de la Gráfica
+    // Configuración Gráfica Estilizada (Dark Mode con gradientes)
     const ctx = document.getElementById('iotChart').getContext('2d');
+    
+    // Configuración de fuentes y rejillas globales para Chart.js
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
     const iotChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -88,31 +232,62 @@
                 {
                     label: 'Temperatura (°C)',
                     data: [],
-                    borderColor: '#f43f5e',
-                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                    borderColor: '#ff4757',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ff4757',
+                    pointHoverRadius: 7,
+                    backgroundColor: 'rgba(255, 71, 87, 0.04)',
                     yAxisID: 'y-temp',
-                    tension: 0.3
+                    tension: 0.35,
+                    fill: true
                 },
                 {
                     label: 'Humedad (%)',
                     data: [],
-                    borderColor: '#0ea5e9',
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderColor: '#00d2d3',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#00d2d3',
+                    pointHoverRadius: 7,
+                    backgroundColor: 'rgba(0, 210, 211, 0.04)',
                     yAxisID: 'y-hum',
-                    tension: 0.3
+                    tension: 0.35,
+                    fill: true
                 }
             ]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 12, padding: 20, font: { size: 12, weight: '600' }, color: '#94a3b8' }
+                }
+            },
             scales: {
-                'y-temp': { type: 'linear', position: 'left', title: { display: true, text: 'Temp °C', color: '#f43f5e' } },
-                'y-hum': { type: 'linear', position: 'right', title: { display: true, text: 'Hum %', color: '#0ea5e9' }, grid: { drawOnChartArea: false } }
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                    ticks: { font: { size: 10 } }
+                },
+                'y-temp': { 
+                    type: 'linear', 
+                    position: 'left', 
+                    grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                    title: { display: true, text: 'Temperatura (°C)', color: '#ff4757', font: { weight: 'bold' } } 
+                },
+                'y-hum': { 
+                    type: 'linear', 
+                    position: 'right', 
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Humedad (%)', color: '#00d2d3', font: { weight: 'bold' } } 
+                }
             }
         }
     });
 
-    // Función para consultar la API
+    // Forzar redimensionado estético del canvas
+    document.querySelector('.chart-container').style.height = '400px';
+
     async function actualizarDashboard() {
         try {
             const response = await fetch('/api/lecturas');
@@ -122,16 +297,13 @@
                 const registros = resData.data;
                 const ultimaLectura = registros[registros.length - 1];
 
-                // Actualizar Tarjetas superiores
                 document.getElementById('curr-temp').innerText = `${ultimaLectura.temperatura.toFixed(1)}°C`;
                 document.getElementById('curr-hum').innerText = `${ultimaLectura.humedad.toFixed(1)}%`;
 
-                // Procesar datos para la gráfica
                 const labels = registros.map(r => new Date(r.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
                 const temps = registros.map(r => r.temperatura);
                 const hums = registros.map(r => r.humedad);
 
-                // Inyectar datos en Chart.js y renderizar
                 iotChart.data.labels = labels;
                 iotChart.data.datasets[0].data = temps;
                 iotChart.data.datasets[1].data = hums;
@@ -142,7 +314,6 @@
         }
     }
 
-    // Consultar inmediatamente y luego cada 3 segundos
     actualizarDashboard();
     setInterval(actualizarDashboard, 3000);
 </script>
