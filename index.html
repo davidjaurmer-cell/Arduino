@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard IoT - Telemetría LoRa</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121824;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #38bdf8;
+            margin-bottom: 30px;
+        }
+        .widgets {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            flex: 1;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
+        }
+        .card h3 { margin: 0; color: #94a3b8; font-size: 14px; text-transform: uppercase; }
+        .card .value { font-size: 48px; font-weight: bold; margin: 10px 0; }
+        .temp .value { color: #f43f5e; }
+        .hum .value { color: #0ea5e9; }
+        .chart-container {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dashboard Control - Estación LoRa</h1>
+
+    <div class="widgets">
+        <div class="card temp">
+            <h3>Temperatura</h3>
+            <div class="value" id="curr-temp">--°C</div>
+        </div>
+        <div class="card hum">
+            <h3>Humedad</h3>
+            <div class="value" id="curr-hum">--%</div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="iotChart"></canvas>
+    </div>
+
+    <div class="footer">Actualizándose automáticamente cada 3 segundos</div>
+</div>
+
+<script>
+    // Configuración Inicial de la Gráfica
+    const ctx = document.getElementById('iotChart').getContext('2d');
+    const iotChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Temperatura (°C)',
+                    data: [],
+                    borderColor: '#f43f5e',
+                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                    yAxisID: 'y-temp',
+                    tension: 0.3
+                },
+                {
+                    label: 'Humedad (%)',
+                    data: [],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    yAxisID: 'y-hum',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                'y-temp': { type: 'linear', position: 'left', title: { display: true, text: 'Temp °C', color: '#f43f5e' } },
+                'y-hum': { type: 'linear', position: 'right', title: { display: true, text: 'Hum %', color: '#0ea5e9' }, grid: { drawOnChartArea: false } }
+            }
+        }
+    });
+
+    // Función para consultar la API
+    async function actualizarDashboard() {
+        try {
+            const response = await fetch('/api/lecturas');
+            const resData = await response.json();
+            
+            if (resData.status === "success" && resData.data.length > 0) {
+                const registros = resData.data;
+                const ultimaLectura = registros[registros.length - 1];
+
+                // Actualizar Tarjetas superiores
+                document.getElementById('curr-temp').innerText = `${ultimaLectura.temperatura.toFixed(1)}°C`;
+                document.getElementById('curr-hum').innerText = `${ultimaLectura.humedad.toFixed(1)}%`;
+
+                // Procesar datos para la gráfica
+                const labels = registros.map(r => new Date(r.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+                const temps = registros.map(r => r.temperatura);
+                const hums = registros.map(r => r.humedad);
+
+                // Inyectar datos en Chart.js y renderizar
+                iotChart.data.labels = labels;
+                iotChart.data.datasets[0].data = temps;
+                iotChart.data.datasets[1].data = hums;
+                iotChart.update();
+            }
+        } catch (error) {
+            console.error("Error cargando datos del backend:", error);
+        }
+    }
+
+    // Consultar inmediatamente y luego cada 3 segundos
+    actualizarDashboard();
+    setInterval(actualizarDashboard, 3000);
+</script>
+
+</body>
+</html>
